@@ -243,12 +243,48 @@ let db: DbSchema = {
 function loadDatabase() {
   try {
     if (fs.existsSync(DB_PATH)) {
-      const parsed = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
-      db = { ...db, ...parsed };
+      const fileData = fs.readFileSync(DB_PATH, 'utf-8');
+      if (fileData.trim()) {
+        const parsed = JSON.parse(fileData);
+        // Gabungkan data dari file dengan initial data agar properti tidak kosong (undefined)
+        db = {
+          users: parsed.users || initialUsers,
+          passwords: parsed.passwords || initialUserPasswords,
+          siswaProfiles: parsed.siswaProfiles || initialSiswaProfiles,
+          guruProfiles: parsed.guruProfiles || initialGuruProfiles,
+          pklLocations: parsed.pklLocations || initialPklLocations,
+          presences: parsed.presences || initialPresences,
+          journals: parsed.journals || initialJournals,
+          izins: parsed.izins || initialIzins,
+          visits: parsed.visits || initialVisits,
+          guidances: parsed.guidances || initialGuidances,
+          waLogs: parsed.waLogs || initialWaLogs,
+          backups: parsed.backups || [],
+          competencies: parsed.competencies || initialCompetencies
+        };
+        return;
+      }
     }
   } catch (error) {
-    console.log('Database membaca langsung dari RAM internal Vercel.');
+    console.log('Gagal membaca database fisik, mengunci struktur default ke RAM Vercel.');
   }
+
+  // FORCE FALLBACK: Jika di Vercel/Serverless, pastikan variabel db terisi struktur default utuh
+  db = {
+    users: initialUsers,
+    passwords: initialUserPasswords,
+    siswaProfiles: initialSiswaProfiles,
+    guruProfiles: initialGuruProfiles,
+    pklLocations: initialPklLocations,
+    presences: initialPresences,
+    journals: initialJournals,
+    izins: initialIzins,
+    visits: initialVisits,
+    guidances: initialGuidances,
+    waLogs: initialWaLogs,
+    backups: [],
+    competencies: initialCompetencies
+  };
 }
 
 function saveDatabase() {
