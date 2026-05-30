@@ -14,9 +14,9 @@ const PORT = 3000;
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Database file path
-const DB_PATH = path.join(process.cwd(), 'data', 'db.json');
-const BACKUPS_DIR = path.join(process.cwd(), 'data', 'backups');
+// Database file path (Dialihkan ke folder /tmp khusus Serverless)
+const DB_PATH = path.join('/tmp', 'db.json');
+const BACKUPS_DIR = path.join('/tmp', 'backups');
 
 // Helper to ensure data directory exists (Aman untuk Vercel)
 try {
@@ -246,7 +246,6 @@ function loadDatabase() {
       const fileData = fs.readFileSync(DB_PATH, 'utf-8');
       if (fileData.trim()) {
         const parsed = JSON.parse(fileData);
-        // Gabungkan data dari file dengan initial data agar properti tidak kosong (undefined)
         db = {
           users: parsed.users || initialUsers,
           passwords: parsed.passwords || initialUserPasswords,
@@ -266,10 +265,10 @@ function loadDatabase() {
       }
     }
   } catch (error) {
-    console.log('Gagal membaca database fisik, mengunci struktur default ke RAM Vercel.');
+    console.log('Membaca data dari RAM Vercel');
   }
 
-  // FORCE FALLBACK: Jika di Vercel/Serverless, pastikan variabel db terisi struktur default utuh
+  // Jika file /tmp/db.json belum ada, pakai data awal
   db = {
     users: initialUsers,
     passwords: initialUserPasswords,
@@ -291,7 +290,7 @@ function saveDatabase() {
   try {
     fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2), 'utf-8');
   } catch (error) {
-    console.log('Penyimpanan dialihkan ke RAM sementara.');
+    console.log('Gagal menulis ke /tmp');
   }
 }
 
