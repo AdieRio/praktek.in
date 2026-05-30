@@ -1304,3 +1304,6 @@ startServer();
 
 // WAJIB tambahkan baris ini di paling akhir file index.ts kamu:
 export default app;
+// HAPUS ATAU KOMENTARI BLOK INI JIKA ADA:
+app.get('*', (req, res) => { ... });
+app.get('/', (req, res) => { ... });
