@@ -1,0 +1,11 @@
+{
+  "name": "Praktek.in",
+  "description": "Sistem Informasi Monitoring dan Geotagging Praktik Kerja Lapangan (E-PKL) SMK Kesehatan Citra Medika Sukoharjo",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
