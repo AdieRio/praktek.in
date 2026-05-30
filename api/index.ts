@@ -1234,22 +1234,12 @@ app.post('/api/backup/process', (req, res) => {
   }
 });
 
-// --- KONFIGURASI PENYELARASAN SERVERLESS VERCEL ---
 // Menyalakan server lokal (app.listen) HANYA jika berjalan di laptop Anda (Development)
 if (process.env.NODE_ENV !== 'production') {
-  async function startLocalServer() {
-    const { createServer as createViteServer } = await import('vite');
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa'
-    });
-    app.use(vite.middlewares);
-    
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`[E-PKL Server] Live on http://localhost:${PORT}`);
-    });
-  }
-  startLocalServer();
+  const PORT_LOCAL = process.env.PORT || 3000;
+  app.listen(PORT_LOCAL, () => {
+    console.log(`[E-PKL Server] Live on http://localhost:${PORT_LOCAL}`);
+  });
 }
 
 // Ekspor modul app agar dikenali oleh serverless engine milik Vercel
