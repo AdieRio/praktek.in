@@ -6,7 +6,7 @@ import {
   User, UserRole, PklLocation, SiswaProfile, 
   GuruProfile, Presence, Journal, Izin, Visit, 
   GuidanceNote, WaLog, BackupHistory, Competency 
-} from './src/types';
+} from '../src/types';
 
 const app = express();
 const PORT = 3000;
@@ -1299,3 +1299,8 @@ async function startServer() {
 }
 
 startServer();
+// Berikan tanda komentar pada baris ini jika ada eror paths
+// app.use(express.static(distPath)); 
+
+// WAJIB tambahkan baris ini di paling akhir file index.ts kamu:
+export default app;
