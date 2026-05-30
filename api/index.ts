@@ -1,11 +1,11 @@
-//import express from 'express';
-//import path from 'path';
-//import fs from 'fs';
-//import { 
+import express from 'express';
+import path from 'path';
+import fs from 'fs';
+import { 
   User, UserRole, PklLocation, SiswaProfile, 
   GuruProfile, Presence, Journal, Izin, Visit, 
   GuidanceNote, WaLog, BackupHistory, Competency 
-//} from '../src/types';
+} from '../src/types';
 
 const app = express();
 const PORT = 3000;
@@ -18,12 +18,16 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 const DB_PATH = path.join(process.cwd(), 'data', 'db.json');
 const BACKUPS_DIR = path.join(process.cwd(), 'data', 'backups');
 
-// Helper to ensure data directory exists
-if (!fs.existsSync(path.join(process.cwd(), 'data'))) {
-  fs.mkdirSync(path.join(process.cwd(), 'data'));
-}
-if (!fs.existsSync(BACKUPS_DIR)) {
-  fs.mkdirSync(BACKUPS_DIR);
+// Helper to ensure data directory exists (Aman untuk Vercel)
+try {
+  if (!fs.existsSync(path.join(process.cwd(), 'data'))) {
+    fs.mkdirSync(path.join(process.cwd(), 'data'));
+  }
+  if (!fs.existsSync(BACKUPS_DIR)) {
+    fs.mkdirSync(BACKUPS_DIR);
+  }
+} catch (folderError) {
+  console.log('Menjalankan mode serverless: Lewati pembuatan folder fisik.');
 }
 
 // Initial Seeding Data
@@ -241,15 +245,9 @@ function loadDatabase() {
     if (fs.existsSync(DB_PATH)) {
       const parsed = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
       db = { ...db, ...parsed };
-      if (!db.competencies || db.competencies.length === 0 || db.competencies.some(c => c.id === 'instalasiJaringan')) {
-        db.competencies = initialCompetencies;
-        saveDatabase();
-      }
-    } else {
-      saveDatabase();
     }
   } catch (error) {
-    console.error('Failed to load database. Working with RAM fallback.', error);
+    console.log('Database membaca langsung dari RAM internal Vercel.');
   }
 }
 
@@ -257,7 +255,7 @@ function saveDatabase() {
   try {
     fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2), 'utf-8');
   } catch (error) {
-    console.error('Failed to save database:', error);
+    console.log('Penyimpanan dialihkan ke RAM sementara.');
   }
 }
 
