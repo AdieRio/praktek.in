@@ -1,7 +1,6 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
-import { createServer as createViteServer } from 'vite';
 import { 
   User, UserRole, PklLocation, SiswaProfile, 
   GuruProfile, Presence, Journal, Izin, Visit, 
@@ -196,21 +195,15 @@ const initialWaLogs: WaLog[] = [
 ];
 
 const initialCompetencies: Competency[] = [
-  // Layanan Penunjang Kefarmasian Klinis & Komunitas
   { id: 'penerimaanObat', code: 'FAR01', name: 'Penerimaan & Penyimpanan Farmasi', description: 'Kemampuan administrasi penerimaan, verifikasi, dan penyimpanan perbekalan farmasi berdasarkan prinsip FIFO/FEFO dan suhu penyimpanan yang sesuai.' },
   { id: 'peracikanObat', code: 'FAR02', name: 'Pelayanan Resep & Peracikan Obat', description: 'Kemampuan membaca resep medis, menghitung dosis obat dasar, melakukan penyelesaian sediaan (puyer, salep, kapsul), serta mengemas obat dengan etiket yang informatif.' },
   { id: 'informasiObat', code: 'FAR03', name: 'KIE & Swamedikasi Dasar', description: 'Kemampuan menjelaskan cara pakai obat yang aman, indikasi/kontraindikasi, efek samping ringan, dan memberikan komunikasi informasi edukasi swamedikasi dasar kepada keluarga pasien.' },
-
-  // Layanan Penunjang Keperawatan & Caregiving
   { id: 'vitalSigns', code: 'KEP01', name: 'Pemeriksaan TTV & Fisik Dasar', description: 'Kemampuan memantau dan mencatat tanda-tanda vital secara akurat (tekanan darah, detak jantung, suhu badan, laju pernafasan), serta melakukan pengamatan kondisi umum fisik pasien.' },
   { id: 'basicCaregiving', code: 'KEP02', name: 'Pemenuhan KDM & Personal Higiene', description: 'Kemampuan mengasuh kebutuhan dasar manusia (makan, minum, eliminasi), membantu memandikan di tempat tidur, melakukan perawatan rambut & gigi mulut, serta melakukan mobilisasi fisik pasien secara aman.' },
   { id: 'komunikasiTerapeutik', code: 'KEP03', name: 'Komunikasi Terapeutik & Etika Medis', description: 'Kemampuan berkomunikasi dengan empati, kesabaran tinggi kepada pasien rentan/lansia (caregiving), menerapkan kode etik kerahasiaan medis, dan mendokumentasikan logbook harian klinis.' },
-
-  // Kompetensi Sikap Umum Kerja Medis
   { id: 'softSkillsMedis', code: 'SEK01', name: 'Sikap Kerja & Disiplin Sterilitas', description: 'Kepatuhan tinggi pada peraturan tempat kerja, ketepatan kehadiran, etika penampilan medis rapi, kerja sama tim, serta kepatuhan pemakaian APD dan standar kebersihan sterilitas medis.' }
 ];
 
-// Complete Database Schema
 interface DbSchema {
   users: User[];
   passwords: Record<string, string>;
@@ -243,14 +236,11 @@ let db: DbSchema = {
   competencies: initialCompetencies
 };
 
-// Database utility functions
 function loadDatabase() {
   try {
     if (fs.existsSync(DB_PATH)) {
       const parsed = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
-      // Merge with default schema structure to prevent missing properties
       db = { ...db, ...parsed };
-      // Override or populate if competencies are using the old networking schema
       if (!db.competencies || db.competencies.length === 0 || db.competencies.some(c => c.id === 'instalasiJaringan')) {
         db.competencies = initialCompetencies;
         saveDatabase();
@@ -271,9 +261,8 @@ function saveDatabase() {
   }
 }
 
-// Haversine formula to compute distance in meters between two lat/long points
 function getDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371000; // Radius of Earth in meters
+  const R = 6371000;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
   const a = 
@@ -284,10 +273,8 @@ function getDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: numbe
   return Math.round(R * c);
 }
 
-// Initialize Database
 loadDatabase();
 
-// WhatsApp simulator dispatch API callback
 function sendSimulatedWaMessage(phone: string, text: string) {
   const log: WaLog = {
     id: 'wa-' + Date.now() + Math.floor(Math.random() * 1000),
@@ -322,7 +309,6 @@ app.post('/api/auth/login', (req, res) => {
     return res.status(401).json({ error: 'Password yang Anda masukkan salah!' });
   }
 
-  // Find dynamic details matching role
   let sisProfile: SiswaProfile | undefined;
   let gurProfile: GuruProfile | undefined;
 
@@ -436,12 +422,10 @@ app.put('/api/siswa/:id', (req, res) => {
     profile.progressCompetency = Number(progressCompetency);
   }
 
-  // Handle PDF report submission & approval attributes
   if (req.body.reportFileName !== undefined) profile.reportFileName = req.body.reportFileName;
   if (req.body.reportFileContent !== undefined) profile.reportFileContent = req.body.reportFileContent;
   if (req.body.reportStatus !== undefined) {
     profile.reportStatus = req.body.reportStatus;
-    // Send standard SMS / WhatsApp notification to student if approved or graded
     if ((req.body.reportStatus === 'approved' || req.body.reportStatus === 'rejected') && profile.phone) {
       sendSimulatedWaMessage(profile.phone, `[EPKL NOTIFIKASI LAPORAN] Halo ${profile.name}, Laporan observasi PKL Anda telah diperiksa oleh guru pembimbing dengan status: ${req.body.reportStatus.toUpperCase()}. Catatan: "${req.body.reportNotes || '-'}"`);
     }
@@ -449,7 +433,6 @@ app.put('/api/siswa/:id', (req, res) => {
   if (req.body.reportNotes !== undefined) profile.reportNotes = req.body.reportNotes;
   if (req.body.reportGrade !== undefined) profile.reportGrade = req.body.reportGrade;
 
-  // Keep main user object synchronized
   const user = db.users.find(u => u.id === profile.userId);
   if (user) {
     user.name = profile.name;
@@ -477,11 +460,9 @@ app.delete('/api/siswa/:id', (req, res) => {
   if (index === -1) return res.status(404).json({ error: 'Profil siswa tidak ditemukan' });
 
   const profile = db.siswaProfiles[index];
-  // Remove user
   db.users = db.users.filter(u => u.id !== profile.userId);
   delete db.passwords[profile.userId];
 
-  // Remove profiles
   db.siswaProfiles.splice(index, 1);
   saveDatabase();
   return res.json({ success: true, message: 'Data siswa terhapus secara permanen.' });
@@ -575,7 +556,6 @@ app.delete('/api/guru/:id', (req, res) => {
   db.users = db.users.filter(u => u.id !== profile.userId);
   delete db.passwords[profile.userId];
 
-  // Unassign pembimbing on matched siswa
   db.siswaProfiles.forEach(s => {
     if (s.pembimbingId === id) s.pembimbingId = undefined;
   });
@@ -587,7 +567,6 @@ app.delete('/api/guru/:id', (req, res) => {
 
 // 4. Tempat PKL CRUD
 app.get('/api/pkl', (req, res) => {
-  // Append current quota usage
   const result = db.pklLocations.map(location => {
     const filled = db.siswaProfiles.filter(s => s.pklLocationId === location.id).length;
     return {
@@ -643,7 +622,6 @@ app.delete('/api/pkl/:id', (req, res) => {
   const index = db.pklLocations.findIndex(l => l.id === id);
   if (index === -1) return res.status(404).json({ error: 'Lokasi PKL tidak ditemukan' });
 
-  // Reset matched siswa location
   db.siswaProfiles.forEach(s => {
     if (s.pklLocationId === id) s.pklLocationId = undefined;
   });
@@ -653,7 +631,7 @@ app.delete('/api/pkl/:id', (req, res) => {
   return res.json({ success: true, message: 'Lokasi PKL berhasil dihapus.' });
 });
 
-// 5. Presensi Masuk & Pulang Siswa with Geotagging & Radius check
+// 5. Presensi Masuk & Pulang
 app.get('/api/presence', (req, res) => {
   const { siswaId, date } = req.query;
   let list = db.presences;
@@ -665,7 +643,6 @@ app.get('/api/presence', (req, res) => {
     list = list.filter(p => p.date === date);
   }
 
-  // Populate profiles
   const mapped = list.map(p => {
     const s = db.siswaProfiles.find(sp => sp.id === p.siswaId);
     const loc = s ? db.pklLocations.find(l => l.id === s.pklLocationId) : null;
@@ -699,7 +676,6 @@ app.post('/api/presence/checkin', (req, res) => {
   const location = db.pklLocations.find(l => l.id === siswa.pklLocationId);
   if (!location) return res.status(404).json({ error: 'Data lokasi PKL penempatan Anda rusak/tidak ditemukan.' });
 
-  // Calculate distance
   const distance = getDistanceMeters(Number(latitude), Number(longitude), location.latitude, location.longitude);
   if (distance > location.radius) {
     return res.status(400).json({ 
@@ -708,7 +684,6 @@ app.post('/api/presence/checkin', (req, res) => {
     });
   }
 
-  // Establish today dates
   const todayStr = new Date().toISOString().split('T')[0];
   const timeStr = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\./g, ':');
 
@@ -718,8 +693,7 @@ app.post('/api/presence/checkin', (req, res) => {
     return res.status(400).json({ error: 'Anda sudah tercatat melakukan presensi MASUK untuk hari ini!' });
   }
 
-  // Determine late or on-time
-  const limitHour = 8; // 08:00 AM
+  const limitHour = 8;
   const currentHour = new Date().getHours();
   const currentMinute = new Date().getMinutes();
   const checkInStatus = (currentHour > limitHour || (currentHour === limitHour && currentMinute > 0)) ? 'telat' : 'tepat_waktu';
@@ -743,12 +717,10 @@ app.post('/api/presence/checkin', (req, res) => {
 
   saveDatabase();
 
-  // Send WA Notifications to the student
   if (siswa.phone) {
     sendSimulatedWaMessage(siswa.phone, `[EPKL PRESENSI] Halo ${siswa.name}, absensi MASUK berhasil terekam pada pukul ${timeStr} dengan radius ${distance}m dari pusat lokasi magang (${location.name}). Status: ${checkInStatus === 'telat' ? 'TERLAMBAT ⚠️' : 'TEPAT WAKTU ✅'}`);
   }
 
-  // Real-time notification to Mentor
   const mentor = db.guruProfiles.find(g => g.id === siswa.pembimbingId);
   if (mentor && mentor.phone) {
     sendSimulatedWaMessage(mentor.phone, `[EPKL MONITORING] Siswa bimbingan Anda (${siswa.name}, Kelas ${siswa.className}) baru saja melakukan absensi MASUK PKL di ${location.name} pukul ${timeStr} berjarak ${distance}m dari titik lokasi.`);
@@ -791,9 +763,8 @@ app.post('/api/presence/checkout', (req, res) => {
     return res.status(400).json({ error: 'Anda sudah mencatatkan presensi PULANG hari ini!' });
   }
 
-  // Classify checkout status
   const currentHour = new Date().getHours();
-  const checkOutStatus = currentHour < 16 ? 'cepat' : 'normal'; // 4:00 PM standard checkout
+  const checkOutStatus = currentHour < 16 ? 'cepat' : 'normal';
 
   presence.checkOutTime = timeStr;
   presence.checkOutLatitude = Number(latitude);
@@ -801,7 +772,7 @@ app.post('/api/presence/checkout', (req, res) => {
   presence.checkOutDistance = distance;
   presence.checkOutSelfie = selfie;
   presence.checkOutStatus = checkOutStatus;
-  presence.approved = true; // Auto approve upon valid dual presence if desired, or manual
+  presence.approved = true;
 
   saveDatabase();
 
@@ -812,7 +783,6 @@ app.post('/api/presence/checkout', (req, res) => {
   return res.json({ success: true, presence, distance });
 });
 
-// Bulk approve presences (monitoring and verification)
 app.post('/api/presence/approve', (req, res) => {
   const { ids, approved } = req.body;
   if (!ids || !Array.isArray(ids)) {
@@ -841,7 +811,7 @@ app.delete('/api/presence/:id', (req, res) => {
   return res.json({ success: true, message: 'Data kehadiran berhasil dihapus.' });
 });
 
-// 6. Guru Kunjungan monitoring & documentation
+// 6. Guru Kunjungan
 app.get('/api/visit', (req, res) => {
   const { guruId } = req.query;
   let visits = db.visits;
@@ -887,7 +857,6 @@ app.post('/api/visit', (req, res) => {
   db.visits.unshift(newVisit);
   saveDatabase();
 
-  // Notify students and administrative group via simulated WhatsApp
   const pupilsAtLoc = db.siswaProfiles.filter(s => s.pklLocationId === pklLocationId);
   pupilsAtLoc.forEach(siswa => {
     if (siswa.phone) {
@@ -898,7 +867,6 @@ app.post('/api/visit', (req, res) => {
   return res.json({ success: true, data: newVisit });
 });
 
-// Admin validation end-point for monitoring visit
 app.put('/api/visit/:id/validate', (req, res) => {
   const { id } = req.params;
   const { status, approvedBy } = req.body;
@@ -932,7 +900,7 @@ app.delete('/api/visit/:id', (req, res) => {
   return res.json({ success: true, message: 'Data kunjungan berhasil dihapus.' });
 });
 
-// 7. Student Daily Journal (Jurnal harian)
+// 7. Student Daily Journal
 app.get('/api/journals', (req, res) => {
   const { siswaId, pembimbingId } = req.query;
   let list = db.journals;
@@ -942,7 +910,6 @@ app.get('/api/journals', (req, res) => {
   }
 
   if (pembimbingId) {
-    // Show only journals for students assigned to this mentor
     const bimbinganIds = db.siswaProfiles.filter(s => s.pembimbingId === pembimbingId).map(s => s.id);
     list = list.filter(j => bimbinganIds.includes(j.siswaId));
   }
@@ -970,7 +937,6 @@ app.post('/api/journals', (req, res) => {
 
   const todayStr = new Date().toISOString().split('T')[0];
 
-  // A student can post multiple journals or edit, let's create a new journal entry
   const newJournal: Journal = {
     id: 'jrn-' + Date.now(),
     siswaId,
@@ -988,7 +954,7 @@ app.post('/api/journals', (req, res) => {
 
 app.put('/api/journals/:id', (req, res) => {
   const { id } = req.params;
-  const { status, notes } = req.body; // Approved/Rejected endpoint called by mentor
+  const { status, notes } = req.body;
 
   const journal = db.journals.find(j => j.id === id);
   if (!journal) return res.status(404).json({ error: 'Jurnal harian tidak ditemukan' });
@@ -998,7 +964,6 @@ app.put('/api/journals/:id', (req, res) => {
 
   saveDatabase();
 
-  // Notify student about validation status
   const student = db.siswaProfiles.find(s => s.id === journal.siswaId);
   if (student && student.phone) {
     sendSimulatedWaMessage(student.phone, `[EPKL JURNAL VALIDASI] Halo ${student.name}, Jurnal harian Anda tanggal ${journal.date} telah di-${journal.status.toUpperCase()} oleh Guru Pembimbing. Catatan: ${journal.notes || '-'}`);
@@ -1007,7 +972,7 @@ app.put('/api/journals/:id', (req, res) => {
   return res.json({ success: true, data: journal });
 });
 
-// 8. Permissions (Izin Sakit / Keperluan)
+// 8. Permissions
 app.get('/api/izin', (req, res) => {
   const { siswaId, pembimbingId } = req.query;
   let list = db.izins;
@@ -1047,7 +1012,7 @@ app.post('/api/izin', (req, res) => {
     endDate,
     type: type as 'sakit' | 'izin',
     reason,
-    proofUrl, // Optional base64 file attachment / medical note
+    proofUrl,
     status: 'pending'
   };
 
@@ -1085,7 +1050,7 @@ app.put('/api/izin/:id', (req, res) => {
   return res.json({ success: true, data: izin });
 });
 
-// 9. Competency Assessment / Grades (Penilaian kompetensi siswa)
+// 9. Competency Assessment
 app.post('/api/grades/grade', (req, res) => {
   const { siswaId, grades, progressCompetency } = req.body;
 
@@ -1104,18 +1069,16 @@ app.post('/api/grades/grade', (req, res) => {
   if (progressCompetency !== undefined) {
     profile.progressCompetency = Number(progressCompetency);
   } else {
-    // Recompute auto average progress matching grades
     const values = Object.values(profile.grades);
     const avg = values.reduce((sum, current) => sum + current, 0) / values.length;
     profile.progressCompetency = Math.round(avg);
   }
 
   saveDatabase();
-
   return res.json({ success: true, data: profile });
 });
 
-// 10. Catatan Pembinaan Siswa (Guidance / counseling notes)
+// 10. Catatan Pembinaan Siswa
 app.get('/api/guidances', (req, res) => {
   const { siswaId, guruId } = req.query;
   let list = db.guidances;
@@ -1163,7 +1126,6 @@ app.post('/api/guidances', (req, res) => {
   return res.json({ success: true, data: newNote });
 });
 
-// 10b. Competencies Master Data CRUD Endpoints
 app.get('/api/competencies', (req, res) => {
   return res.json(db.competencies || []);
 });
@@ -1213,7 +1175,6 @@ app.put('/api/competencies/:id', (req, res) => {
   if (description !== undefined) comp.description = description;
 
   saveDatabase();
-
   return res.json({ success: true, data: comp });
 });
 
@@ -1227,7 +1188,6 @@ app.delete('/api/competencies/:id', (req, res) => {
 
   db.competencies.splice(index, 1);
   saveDatabase();
-
   return res.json({ success: true, message: 'Kompetensi berhasil dihapus!' });
 });
 
@@ -1242,7 +1202,7 @@ app.delete('/api/wa-logs', (req, res) => {
   return res.json({ success: true, message: 'Log pesan WhatsApp dibersihkan.' });
 });
 
-// 12. Backup Database Module ("Auto backup data")
+// 12. Backup Database Module
 app.get('/api/backup/history', (req, res) => {
   return res.json(db.backups);
 });
@@ -1254,10 +1214,8 @@ app.post('/api/backup/process', (req, res) => {
     const fileName = `backup-${cleanDateStr}.json`;
     const targetFile = path.join(BACKUPS_DIR, fileName);
 
-    // Write copy of DB to safety folder
     fs.writeFileSync(targetFile, JSON.stringify(db, null, 2), 'utf-8');
 
-    // Count statistics
     const totals = db.siswaProfiles.length + db.guruProfiles.length + db.presences.length;
 
     const backupRecord: BackupHistory = {
@@ -1276,34 +1234,23 @@ app.post('/api/backup/process', (req, res) => {
   }
 });
 
-// Serve frontend build files properly
-async function startServer() {
-  // Vite Integration for instant hot reloading of UI during development
-  if (process.env.NODE_ENV !== 'production') {
+// --- KONFIGURASI PENYELARASAN SERVERLESS VERCEL ---
+// Menyalakan server lokal (app.listen) HANYA jika berjalan di laptop Anda (Development)
+if (process.env.NODE_ENV !== 'production') {
+  async function startLocalServer() {
+    const { createServer as createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa'
     });
     app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+    
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`[E-PKL Server] Live on http://localhost:${PORT}`);
     });
   }
-
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[E-PKL Server] Live on http://localhost:${PORT}`);
-  });
+  startLocalServer();
 }
 
-startServer();
-// Berikan tanda komentar pada baris ini jika ada eror paths
-// app.use(express.static(distPath)); 
-
-// WAJIB tambahkan baris ini di paling akhir file index.ts kamu:
+// Ekspor modul app agar dikenali oleh serverless engine milik Vercel
 export default app;
-// HAPUS ATAU KOMENTARI BLOK INI JIKA ADA:
-app.get('*', (req, res) => { ... });
-app.get('/', (req, res) => { ... });
